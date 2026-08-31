@@ -1,0 +1,3 @@
+entity_type,canonical_name,display_name,context,namespace,identifier
+Pump,PUMP-201-A,مضخة 201-A,,P&ID-TAG,PV-2001
+Valve,VALVE-201-A,صمام 201-A,,P&ID-TAG,PV-2001

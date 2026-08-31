@@ -1,0 +1,4 @@
+entity_type,canonical_name,display_name,context,namespace,identifier
+Pump,PUMP-101-A,مضخة التغذية الرئيسية 101-A,وحدة 100,P&ID-TAG,PV-1042
+Valve,VALVE-101-A,صمام العزل 101-A,,P&ID-TAG,PV-1043
+Pump,PUMP-102-B,مضخة احتياطية 102-B,,P&ID-TAG,PV-1044
