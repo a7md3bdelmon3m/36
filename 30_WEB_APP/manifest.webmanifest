@@ -1,0 +1,14 @@
+{
+  "name": "KIMA EIS — نظام معلومات هندسية",
+  "short_name": "KIMA EIS",
+  "description": "سجل هندسي محلي قابل للتتبع، يعمل بالكامل دون اتصال بالإنترنت",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#12151A",
+  "theme_color": "#12151A",
+  "dir": "rtl",
+  "lang": "ar",
+  "icons": []
+}

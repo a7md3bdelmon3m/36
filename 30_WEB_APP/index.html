@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>KIMA EIS — نظام معلومات هندسية</title>
+<meta name="description" content="KIMA Engineering Information System — سجل هندسي محلي قابل للتتبع" />
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%2312151A'/%3E%3Ctext x='50' y='68' font-size='58' text-anchor='middle' fill='%234FAE8A' font-family='sans-serif'%3E%D9%83%3C/text%3E%3C/svg%3E" />
+<meta name="theme-color" content="#12151A" />
+<link rel="stylesheet" href="./styles.css" />
+<!-- مكتبة SheetJS لقراءة/كتابة Excel — نسخة محلية مضمَّنة بالكامل، بدون أي اعتماد شبكي أو CDN -->
+<script src="./lib/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<div id="toast-host" class="toast-host" aria-live="polite"></div>
+<div id="sw-update-banner" class="sw-update-banner" hidden role="status" aria-live="polite">
+  <span>يتوفر تحديث جديد للتطبيق.</span>
+  <button type="button" id="sw-update-reload-btn" class="btn btn--secondary">إعادة التحميل الآن</button>
+</div>
+
+<div class="app-shell">
+
+  <header class="app-header">
+    <div class="app-header__brand">
+      <span class="app-header__mark" aria-hidden="true">ك</span>
+      <div>
+        <h1>KIMA <span class="app-header__suffix">EIS</span></h1>
+        <p class="app-header__tagline">سجل هندسي محلي · كل عنصر قابل للتتبع لمصدره</p>
+      </div>
+    </div>
+    <p id="status-bar" class="status-bar">جارٍ التحميل…</p>
+    <p id="context-bar" class="context-bar" hidden aria-live="polite"></p>
+  </header>
+
+  <main class="app-main">
+
+    <section class="panel panel--decision" aria-labelledby="decision-heading">
+      <div class="panel__header-row">
+        <div>
+          <h2 id="decision-heading">مركز القرار التشغيلي</h2>
+          <p class="muted">يحوّل القراءات الموثقة والحدود التي تدخلها أنت من الإجراء/المواصفة المعتمدة إلى بطاقة قرار قابلة للتتبع. لا يصدر التطبيق أوامر تحكم تلقائية.</p>
+        </div>
+        <label class="role-selector"><span>دور العرض</span><select id="decision-role"><option value="engineer">مهندس</option><option value="control_room">غرفة التحكم</option><option value="field">الموقع / فني التشغيل</option></select></label>
+      </div>
+      <div id="decision-summary" class="decision-summary">اختر عنصرًا هندسيًا من القائمة لعرض قراراته وقراءة بياناته.</div>
+    </section>
+
+    <section class="panel panel--form" aria-labelledby="create-heading">
+      <h2 id="create-heading">تسجيل عنصر هندسي جديد</h2>
+      <form id="entity-form" class="stacked-form">
+        <label>
+          <span>نوع العنصر <em>(entity_type)</em></span>
+          <input type="text" name="entity_type" placeholder="مثال: Pump / Valve / Line" required />
+        </label>
+        <label>
+          <span>الاسم القانوني <em>(canonical_name)</em></span>
+          <input type="text" name="canonical_name" placeholder="مثال: PUMP-101-A" required />
+        </label>
+        <label>
+          <span>الاسم المعروض <em>(display_name)</em></span>
+          <input type="text" name="display_name" placeholder="مثال: مضخة التغذية الرئيسية 101-A" required />
+        </label>
+        <label>
+          <span>السياق <em>(اختياري)</em></span>
+          <textarea name="context" rows="2" placeholder="ملاحظات سياقية — لا تُستخدم كدليل موثّق"></textarea>
+        </label>
+        <button type="submit" class="btn btn--primary">حفظ العنصر</button>
+      </form>
+    </section>
+
+    <section class="panel panel--list" aria-labelledby="list-heading">
+      <div class="panel__header-row">
+        <h2 id="list-heading">استكشاف العناصر</h2>
+        <span class="chip chip--count" id="entity-count">0</span>
+      </div>
+
+      <div class="explorer-controls">
+        <label class="explorer-search">
+          <span class="sr-only">بحث</span>
+          <input type="search" id="explorer-search-input" placeholder="ابحث بالاسم، المعرّف القانوني، أو النوع…" />
+        </label>
+        <div class="explorer-filters">
+          <label>
+            <span class="sr-only">تصفية حسب النوع</span>
+            <select id="explorer-filter-type">
+              <option value="">كل الأنواع</option>
+            </select>
+          </label>
+          <label>
+            <span class="sr-only">تصفية حسب الحالة</span>
+            <select id="explorer-filter-status">
+              <option value="">كل الحالات</option>
+            </select>
+          </label>
+          <label>
+            <span class="sr-only">الترتيب حسب</span>
+            <select id="explorer-sort-by">
+              <option value="updated_at">آخر تحديث</option>
+              <option value="canonical_name">الاسم القانوني</option>
+              <option value="entity_type">النوع</option>
+            </select>
+          </label>
+          <button type="button" id="explorer-sort-direction" class="btn btn--secondary" aria-label="عكس اتجاه الترتيب" title="عكس اتجاه الترتيب">↓</button>
+        </div>
+      </div>
+
+      <p id="explorer-context-filter" class="explorer-context-filter" hidden></p>
+
+      <p id="entity-empty" class="muted empty-state" hidden>
+        لا توجد عناصر بعد. سجّل أول عنصر هندسي من النموذج المجاور.
+      </p>
+      <p id="explorer-no-results" class="muted empty-state" hidden>
+        لا توجد عناصر مطابقة لمعايير البحث/التصفية الحالية.
+      </p>
+      <ul id="entity-list" class="entity-list" role="list"></ul>
+
+      <nav class="explorer-pagination" id="explorer-pagination" aria-label="ترقيم الصفحات" hidden>
+        <button type="button" id="explorer-page-prev" class="btn btn--secondary">السابق</button>
+        <span id="explorer-page-info" class="muted"></span>
+        <button type="button" id="explorer-page-next" class="btn btn--secondary">التالي</button>
+      </nav>
+    </section>
+
+    <section class="panel panel--import" aria-labelledby="import-heading">
+      <div class="panel__header-row">
+        <h2 id="import-heading">استيراد ملف مصدر (CSV / Excel)</h2>
+      </div>
+      <div class="import-mode-switch" role="radiogroup" aria-label="نوع الاستيراد">
+        <label><input type="radio" name="import-mode" value="entities" id="import-mode-entities" checked /> كيانات</label>
+        <label><input type="radio" name="import-mode" value="relationships" id="import-mode-relationships" /> علاقات (R2-003)</label>
+      </div>
+
+      <div id="import-mode-entities-panel">
+        <p class="muted">
+          اختر ملف CSV أو Excel (.xlsx/.xls) يحتوي أعمدة: entity_type, canonical_name, display_name (اختياري), context (اختياري), namespace, identifier.
+          لن يُكتب أي شيء في القاعدة إلا بعد المعاينة والضغط على "التزام".
+        </p>
+        <label class="import-file-label">
+          <span>ملف الاستيراد</span>
+          <input type="file" id="import-file-input" accept=".csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" />
+        </label>
+        <div id="import-result"></div>
+        <button id="import-commit-btn" class="btn btn--primary" hidden>التزام بالتغييرات (Commit)</button>
+      </div>
+
+      <div id="import-mode-relationships-panel" hidden>
+        <p class="muted">
+          اختر ملفًا يحتوي أعمدة علاقات بين عناصر مستوردة مسبقًا: From_Tag/To_Tag (أو From_ID/To_ID)، Relationship_Type، Direction (اختياري). كل عنصر يُذكَر يجب أن يكون قد استُورد مسبقًا عبر تبويب "كيانات" أعلاه (بنفس canonical_name).
+          لن يُكتب أي شيء في القاعدة إلا بعد المعاينة والضغط على "التزام".
+        </p>
+        <label class="import-file-label">
+          <span>ملف علاقات</span>
+          <input type="file" id="import-relationships-file-input" accept=".csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" />
+        </label>
+        <div id="import-relationships-result"></div>
+        <button id="import-relationships-commit-btn" class="btn btn--primary" hidden>التزام بالعلاقات (Commit)</button>
+      </div>
+    </section>
+
+    <section class="panel panel--backup" aria-labelledby="backup-heading"><div class="panel__header-row"><h2 id="backup-heading">حماية البيانات</h2></div><p class="muted">نسخة احتياطية محلية لبيانات النظام، مع إمكانية الاستعادة على هذا الجهاز.</p><div class="explorer-filters"><button type="button" id="backup-export-btn" class="btn btn--secondary">تصدير نسخة احتياطية</button><label class="import-file-label"><span>استعادة نسخة</span><input type="file" id="backup-import-input" accept="application/json,.json" /></label></div><div class="field-row"><label><span>وضع الاستعادة</span><select id="backup-import-mode"><option value="replace" selected>استبدال كامل (يحذف البيانات المحلية الحالية)</option><option value="merge">دمج إضافي (يضيف بدون حذف الموجود)</option></select></label></div><p id="backup-status" class="muted" aria-live="polite"></p></section>
+
+    <section class="panel panel--ledger" aria-labelledby="ledger-heading">
+      <h2 id="ledger-heading" class="sr-only">سجل التتبع</h2>
+      <div id="ledger-panel">
+        <p class="muted">اختر عنصرًا هندسيًا من القائمة لعرض سجل تتبعه.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="app-footer">
+    <p>يعمل بالكامل دون اتصال بالإنترنت · التخزين: IndexedDB محلي على هذا الجهاز فقط</p>
+  </footer>
+
+</div>
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>

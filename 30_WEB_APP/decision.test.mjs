@@ -1,0 +1,12 @@
+import { evaluateObservations, summarizeDecisions } from './decision.js';
+const assert=(x,m)=>{if(!x)throw new Error(m)};
+let r=evaluateObservations([{entity_id:'e1',observation_id:'o1',property_name:'pressure',value:5,unit:'bar',validation_state:'OBSERVED',evidence_id:'ev1',observation_context:{thresholds:{min:3,max:7,critical_min:1,critical_max:9}}}])[0];
+assert(r.status==='NORMAL','normal failed');
+r=evaluateObservations([{entity_id:'e1',property_name:'pressure',value:8,validation_state:'OBSERVED',observation_context:{thresholds:{min:3,max:7,critical_max:9}}}])[0];
+assert(r.status==='WATCH','watch failed');
+r=evaluateObservations([{entity_id:'e1',property_name:'pressure',value:10,validation_state:'OBSERVED',observation_context:{thresholds:{min:3,max:7,critical_max:9}}}])[0];
+assert(r.status==='CRITICAL','critical failed');
+r=evaluateObservations([{entity_id:'e1',property_name:'pressure',value:8,validation_state:'OBSERVED'}])[0];
+assert(r.status==='DATA_INSUFFICIENT','insufficient failed');
+const s=summarizeDecisions([r]); assert(s.insufficient===1,'summary failed');
+console.log('DECISION_ENGINE_TEST=PASS');

@@ -1,0 +1,698 @@
+/* KIMA EIS — design tokens
+   Palette: technical console, not marketing surface.
+   Base:      #12151A  (near-black slate)
+   Surface:   #1B1F27  (panel background)
+   Surface-2: #232833  (raised elements, inputs)
+   Border:    #323847
+   Text:      #E7E9EE  (primary) / #9AA3B2 (muted)
+   Signal — verified/active:  #4FAE8A (desaturated teal-green)
+   Signal — attention/pending: #D9A441 (warm amber, reserved for unresolved states only)
+   Signal — retired/negative:  #C4574B (muted brick red)
+   Type: 'IBM Plex Sans Arabic' for display/body (system fallback), 'IBM Plex Mono' equivalent
+         (monospace system stack) for identifiers/IDs — traceability data reads as data. */
+
+:root {
+  --base: #12151A;
+  --surface: #1B1F27;
+  --surface-2: #232833;
+  --border: #323847;
+  --text: #E7E9EE;
+  --muted: #9AA3B2;
+  --signal-active: #4FAE8A;
+  --signal-attention: #D9A441;
+  --signal-retired: #C4574B;
+  --radius: 10px;
+  --font-display: 'Segoe UI', 'Tahoma', 'Geeza Pro', system-ui, sans-serif;
+  --font-mono: 'Consolas', 'SFMono-Regular', ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--base);
+  color: var(--text);
+  font-family: var(--font-display);
+  min-height: 100vh;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.muted { color: var(--muted); }
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  letter-spacing: 0.01em;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* ---------- App shell ---------- */
+
+.app-shell {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 20px 16px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.app-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.app-header__brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.app-header__mark {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 9px;
+  background: linear-gradient(155deg, var(--signal-active), #2E7A5F);
+  color: #08110D;
+  font-weight: 700;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  letter-spacing: 0.01em;
+}
+
+.app-header__suffix {
+  color: var(--signal-active);
+  font-weight: 400;
+}
+
+.app-header__tagline {
+  margin: 2px 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.status-bar {
+  margin: 0;
+  font-family: var(--font-mono);
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: right;
+  font-size: 0.78rem;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+/* ---------- Layout ---------- */
+
+.app-main {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 880px) {
+  .app-main {
+    grid-template-columns: 320px 1fr 1fr;
+    align-items: start;
+  }
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+}
+
+.panel h2 {
+  margin: 0 0 14px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.panel__header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.panel__header-row h2 { margin: 0; }
+
+/* ---------- Forms ---------- */
+
+.stacked-form, .inline-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+label em {
+  font-style: normal;
+  color: #6B7382;
+  font-size: 0.82em;
+}
+
+input[type="text"], textarea, select {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 9px 11px;
+  color: var(--text);
+  font-family: inherit;
+  /* 16px minimum, not 0.95rem (~15.2px): Chrome on Android auto-zooms
+     the page to any input/select/textarea that receives focus if its
+     computed font-size is below 16px (a browser accessibility
+     behavior, not app logic) — found via real-device testing
+     (2026-08-30) where #decision-role, the first <select> in the DOM,
+     triggered a full-page zoom immediately on load. Fixed at the
+     shared rule so every input/select/textarea is covered, not just
+     the one that happened to trigger it first. */
+  font-size: 16px;
+}
+
+input[type="text"]:focus, textarea:focus, select:focus {
+  outline: 2px solid var(--signal-active);
+  outline-offset: 1px;
+  border-color: var(--signal-active);
+}
+
+.checkbox-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn {
+  border: none;
+  border-radius: 7px;
+  padding: 10px 16px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn--primary {
+  background: var(--signal-active);
+  color: #08110D;
+}
+.btn--primary:hover { filter: brightness(1.08); }
+
+.btn--secondary {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  align-self: flex-start;
+}
+.btn--secondary:hover { border-color: var(--signal-active); }
+
+/* ---------- Entity list ---------- */
+
+.entity-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.entity-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.entity-row:hover, .entity-row:focus-visible {
+  border-color: var(--signal-active);
+  outline: none;
+}
+
+.entity-row[aria-pressed="true"] {
+  border-color: var(--signal-active);
+  box-shadow: 0 0 0 1px var(--signal-active) inset;
+}
+
+.entity-row__main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.entity-row__name {
+  font-weight: 600;
+  font-size: 0.92rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entity-row__canonical {
+  font-family: var(--font-mono);
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: right;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.entity-row__meta {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.entity-row__context {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+/* ---------- Explorer (R3) ---------- */
+
+.explorer-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-block: 12px 14px;
+}
+
+.explorer-search input[type="search"] {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 9px 11px;
+  color: var(--text);
+  font-family: inherit;
+  /* 16px, not 0.95rem — same Android Chrome auto-zoom fix as the
+     shared input/select/textarea rule above; this search field has
+     its own rule so it needed the same correction separately. */
+  font-size: 16px;
+}
+
+.explorer-search input[type="search"]:focus {
+  outline: 2px solid var(--signal-active);
+  outline-offset: 1px;
+  border-color: var(--signal-active);
+}
+
+.explorer-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.explorer-filters select {
+  min-width: 0;
+  flex: 1 1 120px;
+}
+
+#explorer-sort-direction {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.explorer-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-block-start: 14px;
+}
+
+.explorer-pagination .btn {
+  padding: 7px 14px;
+  font-size: 0.85rem;
+}
+
+.explorer-pagination .btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.context-bar {
+  margin-block-start: 6px;
+  font-size: 0.8rem;
+  color: var(--signal-active);
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: right;
+}
+
+/* R3-002: clickable breadcrumb segments (context bar as navigational filter) */
+.context-bar__segment {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+}
+.context-bar__segment:hover,
+.context-bar__segment:focus-visible { color: var(--text); }
+.context-bar__sep { color: var(--muted); }
+
+.explorer-context-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-block: 8px;
+  font-size: 0.85rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 24px 8px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
+
+/* ---------- Chips / badges ---------- */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.chip--outline { background: transparent; }
+.chip--count {
+  background: var(--signal-active);
+  color: #08110D;
+  border-color: transparent;
+  font-weight: 700;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.badge--active { background: rgba(79, 174, 138, 0.16); color: var(--signal-active); }
+.badge--pending { background: rgba(217, 164, 65, 0.16); color: var(--signal-attention); }
+.badge--retired { background: rgba(196, 87, 75, 0.16); color: var(--signal-retired); }
+
+/* ---------- Ledger panel (signature element) ---------- */
+
+.ledger-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.ledger-panel__header h2 { margin: 0; font-size: 1.05rem; }
+
+.ledger-panel__facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+  margin: 0 0 20px;
+  padding: 14px;
+  background: var(--surface-2);
+  border-radius: 8px;
+  border-inline-start: 3px solid var(--signal-active);
+}
+
+.ledger-panel__facts div { display: flex; flex-direction: column; gap: 2px; }
+.ledger-panel__facts dt { font-size: 0.72rem; color: var(--muted); }
+.ledger-panel__facts dd { margin: 0; font-size: 0.88rem; }
+
+.ledger-panel__subheading {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 18px 0 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.identifier-list {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* R9: topology graph */
+.topology-controls {
+  display: flex;
+  gap: 14px;
+  margin-block-end: 8px;
+  flex-wrap: wrap;
+}
+.topology-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.topology-controls select {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+.topology-canvas {
+  width: 100%;
+  height: 320px;
+  display: block;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  touch-action: none; /* required — pan/pinch handled manually, native scroll/zoom would fight it */
+  cursor: grab;
+}
+.topology-canvas:active { cursor: grabbing; }
+.topology-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin-block-start: 8px;
+  font-size: 0.72rem;
+}
+.topology-legend__item { display: inline-flex; align-items: center; gap: 5px; }
+.topology-legend__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.identifier-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.evidence-registration {
+  margin-block-start: 18px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.evidence-registration summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.evidence-registration summary:hover {
+  color: var(--text);
+}
+
+.evidence-registration .inline-form {
+  margin-block-start: 12px;
+}
+
+.evidence-registration .inline-form + .inline-form {
+  margin-block-start: 18px;
+  padding-block-start: 18px;
+  border-block-start: 1px solid var(--border);
+}
+
+.import-file-label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-block: 12px 16px;
+}
+
+input[type="file"] {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 9px 11px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+#import-result {
+  margin-block-start: 8px;
+}
+
+#import-commit-btn {
+  margin-block-start: 16px;
+}
+
+/* ---------- Toasts ---------- */
+
+.toast-host {
+  position: fixed;
+  inset-block-start: 12px;
+  inset-inline-end: 12px;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 320px;
+}
+
+.toast {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-inline-start: 3px solid var(--signal-active);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.toast--visible { opacity: 1; transform: translateY(0); }
+.toast--error { border-inline-start-color: var(--signal-retired); }
+.toast--success { border-inline-start-color: var(--signal-active); }
+
+/* ---------- Service worker update banner ---------- */
+/* Persistent (no auto-dismiss timer, unlike .toast) — a stale-app-version
+   state is a standing condition until the user acts, not a transient
+   event, so it should not silently disappear after 4.2s like a toast. */
+.sw-update-banner {
+  position: fixed;
+  inset-inline: 0;
+  inset-block-start: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 10px 16px;
+  background: var(--accent, #4fae8a);
+  color: #ffffff;
+  font-size: 0.9rem;
+}
+.sw-update-banner[hidden] { display: none; }
+.sw-update-banner .btn {
+  background: #ffffff;
+  color: var(--accent, #4fae8a);
+  border-color: transparent;
+}
+
+/* ---------- Footer ---------- */
+
+.app-footer {
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--muted);
+  padding-top: 10px;
+}
+
+/* ---------- Reduced motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .toast { transition: none; }
+}
+
+/* Decision-support layer */
+.panel--decision { border-inline-start: 4px solid var(--accent, #4fae8a); }
+.panel__header-row { gap: 1rem; }
+.role-selector { min-width: 180px; }
+.role-selector span { display:block; font-size:.82rem; margin-bottom:.35rem; }
+.decision-summary { display:grid; gap:.75rem; margin-top:1rem; }
+.decision-kpis { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:.5rem; }
+.decision-kpi { padding:.7rem; border:1px solid var(--border,#2b313a); border-radius:.65rem; background:var(--panel,#171b21); }
+.decision-kpi strong { display:block; font-size:1.2rem; }
+.decision-card { border:1px solid var(--border,#2b313a); border-radius:.75rem; padding:.85rem; }
+.decision-card__top { display:flex; justify-content:space-between; gap:.5rem; align-items:center; flex-wrap:wrap; }
+.decision-card--critical { border-width:2px; }
+.decision-card--watch { border-width:2px; }
+.decision-card--insufficient { opacity:.9; }
+.decision-card dl { margin:.6rem 0; display:grid; gap:.35rem; }
+.decision-card dt { font-weight:700; }
+.decision-card dd { margin:0; }
+.decision-disclaimer { font-size:.8rem; }
+.measurement-form { margin-top:.75rem; }
+@media (max-width:700px){ .decision-kpis{grid-template-columns:repeat(2,minmax(0,1fr));} .role-selector{width:100%;} }
