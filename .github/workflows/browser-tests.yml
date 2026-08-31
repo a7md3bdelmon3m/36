@@ -1,0 +1,236 @@
+name: KIMA EIS — Automated Headless-Chromium Test Suite (ADR-036 baseline)
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  run-all-harnesses:
+    runs-on: ubuntu-latest
+    steps:
+      - name: سحب الكود من المستودع
+        uses: actions/checkout@v4
+
+      - name: تجهيز Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: التحقق من مسار Chrome المثبت مسبقًا على الـ runner
+        id: chrome
+        run: |
+          CPATH="$(which google-chrome || which chromium-browser || true)"
+          echo "path=$CPATH" >> "$GITHUB_OUTPUT"
+          "$CPATH" --version
+
+      # ------------------------------------------------------------------
+      # طبقة Node-logic (بدون متصفح) — كل الحزم الموجودة فعليًا في شجرة
+      # ADR-036، تُشغَّل أولًا لفشل مبكر واضح
+      # ------------------------------------------------------------------
+      - name: اختبار محرك القرار (decision.test.mjs)
+        working-directory: 30_WEB_APP
+        run: node decision.test.mjs
+
+      - name: فحص نحوي لكل ملفات JS
+        working-directory: 30_WEB_APP
+        run: |
+          for f in *.js; do echo "== $f =="; node --check "$f"; done
+
+      - name: اختبار H-03 المنطقي — عمليات التعديل/الحذف (مدموج من ADR-036)
+        working-directory: 00_CONTROL/tasks/H-03-mutation-ops-implementation
+        run: node node_logic_test.mjs
+
+      - name: اختبار H-04 المنطقي — واجهة ربط المعايير
+        working-directory: 00_CONTROL/tasks/H-04-standard-mapping-ui
+        run: node node_logic_test.mjs
+
+      - name: اختبار H-07/H-08/H-10/H-11 المنطقي
+        working-directory: 00_CONTROL/tasks/H-07-H-08-H-10-H-11-implementation
+        run: node node_logic_test.mjs
+
+      - name: اختبار R2-004 المنطقي — واجهة دمج الاستيراد الاحتياطي
+        working-directory: 00_CONTROL/tasks/R2-004-backup-import-ui-harness
+        run: node node_logic_test.mjs
+
+      - name: اختبار M-26 المنطقي — دورة تحديث Service Worker
+        working-directory: 00_CONTROL/tasks/M-26-sw-update-cycle
+        run: node node_logic_test.mjs
+
+      # ------------------------------------------------------------------
+      # طبقة المتصفح الحقيقي (Chromium headless) — كل harness يستخدم
+      # المنفذين المُثبَّتين فعليًا داخل كوده (تم التحقق من كل رقم منفذ
+      # يدويًا من الكود المصدري قبل كتابة هذا الملف). الحزم الخمس التي
+      # تتشارك المنفذين 8908/9238 (R2-003, R2-004, R3-001, R3-002, T012)
+      # تُشغَّل بالتتابع الصارم: تشغيل → اختبار → إيقاف كامل.
+      # ------------------------------------------------------------------
+
+      - name: R1-002 (hosted) — علاقة/دليل CRUD [منفذ 8899 / 9224]
+        run: |
+          set -e
+          python3 -m http.server 8899 --directory 30_WEB_APP &
+          HTTP_PID=$!
+          "${{ steps.chrome.outputs.path }}" --headless=new --remote-debugging-port=9224 \
+            --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --user-data-dir=/tmp/chrome-r1002 about:blank &
+          CHROME_PID=$!
+          for i in $(seq 1 30); do
+            if curl -s http://127.0.0.1:9224/json/version > /dev/null 2>&1; then
+              echo "Chrome CDP على المنفذ 9224 جاهز بعد ${i} ثانية"
+              break
+            fi
+            sleep 1
+          done
+          node 00_CONTROL/tasks/R1-002-test-harness/test_r1002_hosted.js
+          kill $CHROME_PID $HTTP_PID 2>/dev/null || true
+          sleep 1
+
+      - name: R2-001 (hosted) — استيراد CSV [منفذ 8900 / 9226]
+        run: |
+          set -e
+          cp 00_CONTROL/tasks/R2-001-test-harness/fixture_*.csv 30_WEB_APP/
+          python3 -m http.server 8900 --directory 30_WEB_APP &
+          HTTP_PID=$!
+          "${{ steps.chrome.outputs.path }}" --headless=new --remote-debugging-port=9226 \
+            --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --user-data-dir=/tmp/chrome-r2001 about:blank &
+          CHROME_PID=$!
+          for i in $(seq 1 30); do
+            if curl -s http://127.0.0.1:9226/json/version > /dev/null 2>&1; then
+              echo "Chrome CDP على المنفذ 9226 جاهز بعد ${i} ثانية"
+              break
+            fi
+            sleep 1
+          done
+          node 00_CONTROL/tasks/R2-001-test-harness/test_r2001_hosted.js
+          kill $CHROME_PID $HTTP_PID 2>/dev/null || true
+          rm -f 30_WEB_APP/fixture_*.csv
+          sleep 1
+
+      - name: R2-002 (hosted) — كشف صيغة Excel [منفذ 8902 / 9230]
+        run: |
+          set -e
+          python3 -m http.server 8902 --directory 30_WEB_APP &
+          HTTP_PID=$!
+          "${{ steps.chrome.outputs.path }}" --headless=new --remote-debugging-port=9230 \
+            --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --user-data-dir=/tmp/chrome-r2002 about:blank &
+          CHROME_PID=$!
+          for i in $(seq 1 30); do
+            if curl -s http://127.0.0.1:9230/json/version > /dev/null 2>&1; then
+              echo "Chrome CDP على المنفذ 9230 جاهز بعد ${i} ثانية"
+              break
+            fi
+            sleep 1
+          done
+          node 00_CONTROL/tasks/R2-002-test-harness/test_r2002_hosted.js
+          kill $CHROME_PID $HTTP_PID 2>/dev/null || true
+          sleep 1
+
+      # الحزم التالية (R2-003, R3-001, R3-002, T012, R2-004) كلها تتوقع
+      # بالضبط نفس المنفذين (8908 للتطبيق و9238 لـCDP) — لذلك كل واحدة
+      # تعمل بمفردها تمامًا، وتُغلق قبل أن تبدأ التالية.
+
+      - name: R2-003 (hosted) — استيراد العلاقات [منفذ 8908 / 9238]
+        run: |
+          set -e
+          python3 -m http.server 8908 --directory 30_WEB_APP &
+          HTTP_PID=$!
+          "${{ steps.chrome.outputs.path }}" --headless=new --remote-debugging-port=9238 \
+            --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --user-data-dir=/tmp/chrome-r2003 about:blank &
+          CHROME_PID=$!
+          for i in $(seq 1 30); do
+            if curl -s http://127.0.0.1:9238/json/version > /dev/null 2>&1; then
+              echo "Chrome CDP على المنفذ 9238 جاهز بعد ${i} ثانية"
+              break
+            fi
+            sleep 1
+          done
+          node 00_CONTROL/tasks/R2-003-test-harness/test_r2003_hosted.js
+          kill $CHROME_PID $HTTP_PID 2>/dev/null || true
+          sleep 1
+
+      - name: R3-001 (hosted) — مستكشف العناصر (بحث/فلترة/ترتيب) [منفذ 8908 / 9238]
+        run: |
+          set -e
+          python3 -m http.server 8908 --directory 30_WEB_APP &
+          HTTP_PID=$!
+          "${{ steps.chrome.outputs.path }}" --headless=new --remote-debugging-port=9238 \
+            --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --user-data-dir=/tmp/chrome-r3001 about:blank &
+          CHROME_PID=$!
+          for i in $(seq 1 30); do
+            if curl -s http://127.0.0.1:9238/json/version > /dev/null 2>&1; then
+              echo "Chrome CDP على المنفذ 9238 جاهز بعد ${i} ثانية"
+              break
+            fi
+            sleep 1
+          done
+          node 00_CONTROL/tasks/R3-001-test-harness/test_r3001_hosted.js
+          kill $CHROME_PID $HTTP_PID 2>/dev/null || true
+          sleep 1
+
+      - name: R3-002 (hosted) — فلتر شريط السياق [منفذ 8908 / 9238]
+        run: |
+          set -e
+          python3 -m http.server 8908 --directory 30_WEB_APP &
+          HTTP_PID=$!
+          "${{ steps.chrome.outputs.path }}" --headless=new --remote-debugging-port=9238 \
+            --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --user-data-dir=/tmp/chrome-r3002 about:blank &
+          CHROME_PID=$!
+          for i in $(seq 1 30); do
+            if curl -s http://127.0.0.1:9238/json/version > /dev/null 2>&1; then
+              echo "Chrome CDP على المنفذ 9238 جاهز بعد ${i} ثانية"
+              break
+            fi
+            sleep 1
+          done
+          node 00_CONTROL/tasks/R3-002-test-harness/test_r3002_hosted.js
+          kill $CHROME_PID $HTTP_PID 2>/dev/null || true
+          sleep 1
+
+      - name: T012 (hosted) — النسخ الاحتياطي والاستعادة [منفذ 8908 / 9238]
+        run: |
+          set -e
+          python3 -m http.server 8908 --directory 30_WEB_APP &
+          HTTP_PID=$!
+          "${{ steps.chrome.outputs.path }}" --headless=new --remote-debugging-port=9238 \
+            --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --user-data-dir=/tmp/chrome-t012-$(date +%s) about:blank &
+          CHROME_PID=$!
+          for i in $(seq 1 30); do
+            if curl -s http://127.0.0.1:9238/json/version > /dev/null 2>&1; then
+              echo "Chrome CDP على المنفذ 9238 جاهز بعد ${i} ثانية"
+              break
+            fi
+            sleep 1
+          done
+          node 00_CONTROL/tasks/T012-test-harness/test_t012_hosted.js
+          kill $CHROME_PID $HTTP_PID 2>/dev/null || true
+          sleep 1
+
+      - name: R2-004 (hosted) — واجهة دمج الاستيراد الاحتياطي [منفذ 8908 / 9238]
+        run: |
+          set -e
+          python3 -m http.server 8908 --directory 30_WEB_APP &
+          HTTP_PID=$!
+          "${{ steps.chrome.outputs.path }}" --headless=new --remote-debugging-port=9238 \
+            --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --user-data-dir=/tmp/chrome-r2004 about:blank &
+          CHROME_PID=$!
+          for i in $(seq 1 30); do
+            if curl -s http://127.0.0.1:9238/json/version > /dev/null 2>&1; then
+              echo "Chrome CDP على المنفذ 9238 جاهز بعد ${i} ثانية"
+              break
+            fi
+            sleep 1
+          done
+          node 00_CONTROL/tasks/R2-004-backup-import-ui-harness/test_r2004_hosted.js
+          kill $CHROME_PID $HTTP_PID 2>/dev/null || true
+          sleep 1
+
+      - name: T013 (hosted) — الوضع بدون اتصال [يدير Chrome بنفسه]
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+        run: node 00_CONTROL/tasks/T013-test-harness/test_t013_hosted.js
